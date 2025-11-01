@@ -3,13 +3,25 @@ CREATE TABLE IF NOT EXISTS movements(
     user_id REFERENCES users(ID),
     brand TEXT,
     model TEXT,
-    type_ ENUM('Automatic', 'Manual Mechanical', 'Quartz', 'Mecaquartz'), --Movement type (e.g., “Quartz”, “Automatic”)
+    movement_type_id INT REFERENCES movement_types(ID)
     price REAL, --check
     image_url TEXT,
-    power_reserve TEXT, --e.g., “40 hours”
+    power_reserve TEXT, --ex:., “40 hours”
     accuracy TEXT, --optional
     description TEXT,     
 );
+
+CREATE TABLE IF NOT EXISTS movement_types(
+    ID SERIAL PRIMARY KEY,
+    type_name TEXT UNIQUE NOT NULL, --ex: "Automatic", "Manual Mechanical", "Quartz"                     
+);
+
+INSERT INTO movement_types (type_name) VALUES
+('Automatic'),
+('Manual Mechanical'),
+('Quartz'),
+('Mecaquartz'),
+('Micro-rotor');
 
 CREATE TABLE IF NOT EXISTS cases(
     ID SERIAL PRIMARY KEY,
@@ -61,7 +73,7 @@ CREATE TABLE IF NOT EXISTS hands( --may have to change to different kinds of han
     image_url TEXT,
     color TEXT,
     material TEXT,
-    type_ ENUM('Sword', 'Baton', 'Cathedral') --add more later
+    type_ TEXT, --add more later
     description TEXT,
 );
 

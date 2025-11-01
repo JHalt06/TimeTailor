@@ -24,11 +24,21 @@ def get_parts_by_brand(part_type, part_brand):
     sql = f"SELECT * FROM {part_type} WHERE brand = %s;"
     return exec_get_one(sql, (part_brand,))
 
-def create_part(part_type): #Dynamically insert a new watch part
+def create_part(part_type, part_data): #Dynamically insert a new watch part, this took a while as well lol
+    valid_tables = ["movements", "cases", "dials", "straps", "hands", "crowns"]
+    if part_type not in valid_tables: #only allow inserts into known tables
+        raise ValueError(f"Invalid part type: {part_type}")
 
-    sql = f"INSERT INTO {part_type} VALUES (%s)"
+    # Build the SQL dynamically based on provided columns
+    cols = ", ".join(part_data.keys())                # ex: "brand, model, price"
+    placeholders = ", ".join(["%s"] * len(part_data)) # ex: "%s, %s, %s"
 
+    # Compose the INSERT statement
+    sql = f"INSERT INTO {part_type} ({cols}) VALUES ({placeholders}) RETURNING ID;"
 
+    # Execute and return the new record's ID
+    return exec_get_one(sql, tuple(part_data.values()))
+    
 #----------------------------USER management----------------------------------------------
 def create_user(google_id, email, display_name, avatar_url = None, bio = None):
     sql = """INSERT INTO users(google_id, email, display_name, avatar_url, bio)
@@ -99,12 +109,14 @@ def get_user_builds(user_id): # Retrieve all builds for a specific user
     """
     return exec_get_all(sql, (user_id,))
 
-def update_build(build_, **updates):
+def update_build(build_id, **updates): #this took a while lol. How to use: update_build(1, cases_id=3, dials_id=2, published=True)
     if not updates:
         return {"updated": False}
-    
-
-
+    set_clause = ", ".join([f"{col} = %s" for col in updates])
+    sql = f"UPDATE builds SET {set_clause} WHERE ID = %s;"
+    args = tuple(updates.values()) + (build_id,)
+    exec_commit(sql, args)
+    return {"updated": True}
 
 def delete_build(build_id):
     sql = """DELETE FROM builds WHERE ID = %s"""
