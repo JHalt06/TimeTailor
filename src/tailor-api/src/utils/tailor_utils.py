@@ -4,7 +4,7 @@ from db.db_utils import *
 #     exec_sql_file('db/tables.sql')
 #     #add drops to the tables.sql file
     
-def get_all_parts(part_type):
+def get_all_parts(part_type): #Retreive all records from the specified watch parts table.
     valid_tables = ["movements","cases","dials","straps","hands","crowns"]
     if part_type not in valid_tables:
         raise ValueError(f"Invalid part type: {part_type}")
@@ -12,19 +12,19 @@ def get_all_parts(part_type):
     sql = f"SELECT * FROM {part_type};"
     return exec_get_all(sql)
 
-def get_parts_by_id(part_type, part_id):
+def get_parts_by_id(part_type, part_id): # Fetch a single part record by its ID.
     sql = f"SELECT * FROM {part_type} WHERE ID = %s;"
     return exec_get_one(sql, (part_id,))
 
-def get_parts_by_model(part_type, part_model):
+def get_parts_by_model(part_type, part_model): # Fetch a single part record by its model name.
     sql = f"SELECT * FROM {part_type} WHERE model = %s;"
     return exec_get_one(sql, (part_model,))
 
-def get_parts_by_brand(part_type, part_brand):
+def get_parts_by_brand(part_type, part_brand): # Fetch all parts from a given brand
     sql = f"SELECT * FROM {part_type} WHERE brand = %s;"
     return exec_get_one(sql, (part_brand,))
 
-def create_part(part_type, part_data): #Dynamically insert a new watch part, this took a while as well lol
+def create_part(part_type, part_data): #Dynamically insert a new watch part into a valid watch parts table, this took a while as well lol.
     valid_tables = ["movements", "cases", "dials", "straps", "hands", "crowns"]
     if part_type not in valid_tables: #only allow inserts into known tables
         raise ValueError(f"Invalid part type: {part_type}")
@@ -39,25 +39,26 @@ def create_part(part_type, part_data): #Dynamically insert a new watch part, thi
     # Execute and return the new record's ID
     return exec_get_one(sql, tuple(part_data.values()))
     
-#----------------------------USER management----------------------------------------------
-def create_user(google_id, email, display_name, avatar_url = None, bio = None):
+#----------------------------User management----------------------------------------------
+def create_user(google_id, email, display_name, avatar_url = None, bio = None): #Create a new user record in the users table.
     sql = """INSERT INTO users(google_id, email, display_name, avatar_url, bio)
     VALUES (%s, %s, %s, %s, %s)
     RETURNING ID;
     """
     return exec_get_one(sql, (google_id, email, display_name, avatar_url, bio))
 
-def get_user_by_email(user_email):
+def get_user_by_email(user_email): #Retrieve a user by email address.
     sql = f"SELECT * FROM users WHERE users.email = %s"
     return exec_get_one(sql, (user_email,))
 
-def get_user_by_display_name(user_display_name):
+def get_user_by_display_name(user_display_name): #Retrieve a user by display name.
     sql = f"SELECT * FROM users WHERE users.display_name = %s"
     return exec_get_one(sql, (user_display_name,))
 
 #-------------------------------Build management----------------------------------------
 
 def create_build(user_id, movement_id, case_id, dial_id, strap_id, hand_id, crown_id, published = False):
+#Create a new watch build with its calculated total price
     sql_total_price = """
         SELECT COALESCE(SUM(price), 0) FROM (
             SELECT price FROM movements WHERE ID = %s
@@ -83,13 +84,14 @@ def create_build(user_id, movement_id, case_id, dial_id, strap_id, hand_id, crow
     return exec_get_one(sql_insert, args)
 
 def get_all_builds():
+#Retrieve all builds created by a specific user.
     sql = """"
     SELECT b.*, u.display_name, u.email
     FROM builds b
     LEFT JOIN users u ON b.user_id = u.ID;"""
     return exec_get_all(sql)
 
-def get_user_builds(user_id): # Retrieve all builds for a specific user
+def get_user_builds(user_id): # Retrieve all builds for a specific user.
     sql = """
     SELECT b.*,
         m.model AS movement_model,
@@ -118,7 +120,7 @@ def update_build(build_id, **updates): #this took a while lol. How to use: updat
     exec_commit(sql, args)
     return {"updated": True}
 
-def delete_build(build_id):
+def delete_build(build_id): #Delete a build by its ID.
     sql = """DELETE FROM builds WHERE ID = %s"""
     exec_commit(sql, (build_id,))
     return {"deleted" : True}
@@ -128,6 +130,7 @@ def publish_builds(build_id, published = True): #Modify or set a build's publish
     exec_commit(sql, (published, build_id))
     return {"updated": True, "published" : published}
 
+#------------------------------Calculate Total Price--------------------------------------------
 def calculate_total_price(build_id): #Recalculate total price for a build.
     sql = """
         SELECT COALESCE(SUM(price), 0)
