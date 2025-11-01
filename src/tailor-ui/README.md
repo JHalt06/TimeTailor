@@ -15,7 +15,6 @@ The React Compiler is not enabled on this template because of its impact on dev 
 
 If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
 
-
 ### React + Vite + Tailwind Setup
 
 0 **cd into directory**
@@ -30,7 +29,7 @@ cd src/tailor-ui
 npm create vite@latest . -- --template react
 ```
 
-*(Add `-ts` after `react` if you want TypeScript)*
+_(Add `-ts` after `react` if you want TypeScript)_
 
 2️⃣ **Install dependencies**
 
@@ -38,22 +37,26 @@ npm create vite@latest . -- --template react
 npm install
 ```
 
+```bash
+npm i react react-dom react-router-dom
+```
+
 3️⃣ **Add Tailwind**
 
 ```bash
-npm i -D tailwindcss @tailwindcss/vite
+npm i -D vite @tailwindcss/vite tailwindcss
 ```
 
 4️⃣ **Edit `vite.config.js`**
 
 ```js
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-})
+});
 ```
 
 5️⃣ **Edit `src/index.css`**
