@@ -1,5 +1,6 @@
 CREATE TABLE IF NOT EXISTS movements(
     ID SERIAL PRIMARY KEY,
+    user_id REFERENCES users(ID),
     brand TEXT,
     model TEXT,
     type_ ENUM('Automatic', 'Manual Mechanical', 'Quartz', 'Mecaquartz'), --Movement type (e.g., “Quartz”, “Automatic”)
@@ -12,6 +13,7 @@ CREATE TABLE IF NOT EXISTS movements(
 
 CREATE TABLE IF NOT EXISTS cases(
     ID SERIAL PRIMARY KEY,
+    user_id REFERENCES users(ID),
     brand TEXT,
     model TEXT,
     price REAL, --check
@@ -25,6 +27,7 @@ CREATE TABLE IF NOT EXISTS cases(
 
 CREATE TABLE IF NOT EXISTS dials(
     ID SERIAL PRIMARY KEY,
+    user_id REFERENCES users(ID),
     brand TEXT,
     model TEXT,
     price REAL, 
@@ -37,6 +40,7 @@ CREATE TABLE IF NOT EXISTS dials(
 
 CREATE TABLE IF NOT EXISTS straps(
     ID SERIAL PRIMARY KEY,
+    user_id REFERENCES users(ID),
     brand TEXT,
     model TEXT,
     price REAL, 
@@ -50,6 +54,7 @@ CREATE TABLE IF NOT EXISTS straps(
 
 CREATE TABLE IF NOT EXISTS hands( --may have to change to different kinds of hands ENUM
     ID SERIAL PRIMARY KEY,
+    user_id REFERENCES users(ID),
     brand TEXT,
     model TEXT,
     price REAL, 
@@ -62,6 +67,7 @@ CREATE TABLE IF NOT EXISTS hands( --may have to change to different kinds of han
 
 CREATE TABLE IF NOT EXISTS crowns(
     ID SERIAL PRIMARY KEY,
+    user_id REFERENCES users(ID),
     brand TEXT,
     model TEXT,
     price REAL, 
@@ -71,7 +77,7 @@ CREATE TABLE IF NOT EXISTS crowns(
     description TEXT,
 );
 
-CREATE TABLE IF NOT EXISTS build( --IF NOT EXISTS
+CREATE TABLE IF NOT EXISTS builds( --IF NOT EXISTS
     ID SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(ID),
     movements_id INT REFERENCES movements(ID),
