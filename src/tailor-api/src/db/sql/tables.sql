@@ -1,4 +1,4 @@
-CREATE TABLE movements(
+CREATE TABLE IF NOT EXISTS movements(
     ID SERIAL PRIMARY KEY,
     brand TEXT,
     model TEXT,
@@ -10,7 +10,7 @@ CREATE TABLE movements(
     description TEXT,     
 );
 
-CREATE TABLE cases(
+CREATE TABLE IF NOT EXISTS cases(
     ID SERIAL PRIMARY KEY,
     brand TEXT,
     model TEXT,
@@ -23,7 +23,7 @@ CREATE TABLE cases(
     description TEXT,     
 );
 
-CREATE TABLE dials(
+CREATE TABLE IF NOT EXISTS dials(
     ID SERIAL PRIMARY KEY,
     brand TEXT,
     model TEXT,
@@ -35,7 +35,7 @@ CREATE TABLE dials(
     description TEXT,
 );
 
-CREATE TABLE straps(
+CREATE TABLE IF NOT EXISTS straps(
     ID SERIAL PRIMARY KEY,
     brand TEXT,
     model TEXT,
@@ -48,7 +48,7 @@ CREATE TABLE straps(
     description TEXT,
 );
 
-CREATE TABLE hands( --may have to change to different kinds of hands ENUM
+CREATE TABLE IF NOT EXISTS hands( --may have to change to different kinds of hands ENUM
     ID SERIAL PRIMARY KEY,
     brand TEXT,
     model TEXT,
@@ -60,7 +60,7 @@ CREATE TABLE hands( --may have to change to different kinds of hands ENUM
     description TEXT,
 );
 
-CREATE TABLE crowns(
+CREATE TABLE IF NOT EXISTS crowns(
     ID SERIAL PRIMARY KEY,
     brand TEXT,
     model TEXT,
@@ -69,4 +69,28 @@ CREATE TABLE crowns(
     color TEXT,
     material TEXT,
     description TEXT,
+);
+
+CREATE TABLE IF NOT EXISTS build( --IF NOT EXISTS
+    ID SERIAL PRIMARY KEY,
+    user_id INT REFERENCES users(ID),
+    movements_id INT REFERENCES movements(ID),
+    cases_id INT REFERENCES cases(ID),
+    dials_id INT REFERENCES dials(ID),
+    straps_id INT REFERENCES straps(ID),
+    hands_id INT REFERENCES hands(ID),
+    crowns_id INT REFERENCES crowns(ID),
+    total_price DECIMAL(100,2),
+    time_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    published BOOLEAN --either published or priate (T or F) Could add share via link privacy later.
+);
+
+CREATE TABLE IF NOT EXISTS users( --check data type with Michael later on
+    google_id TEXT,
+    email TEXT,
+    display_name TEXT,
+    avatar_url TEXT,
+    bio TEXT,
+    created_at TIMESTAMP
+    updated_at TIMESTAMP
 );
