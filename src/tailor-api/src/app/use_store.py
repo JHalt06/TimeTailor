@@ -2,7 +2,7 @@ import json, os
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Dict, Optional, Any
-
+from db.db_utils import exec_get_one_dict, exec_commit
 
 @dataclass
 class User:
@@ -31,13 +31,12 @@ class User:
             bio=d.get("bio", ""),
         )
 
-
 class UserStore:
     def get_by_google_id(self, google_sub: str) -> Optional[User]: ...
     def create_or_update_from_google(self, google_profile: Dict[str, Any]) -> User: ...
     def update_profile(self, google_sub: str, display_name: str, bio: str) -> User: ...
 
-
+# -------- JSON store (legacy; kept for dev fallback) --------
 class JSONUserStore(UserStore):
     def __init__(self, path: str):
         self.path = path
@@ -66,7 +65,6 @@ class JSONUserStore(UserStore):
         data = self._load()
         users = data.setdefault("users", {})
         now = datetime.now(timezone.utc).isoformat()
-
         row = users.get(sub)
         if row:
             row["email"] = profile.get("email", row.get("email", ""))
@@ -85,7 +83,6 @@ class JSONUserStore(UserStore):
                 "updated_at": now,
             }
             users[sub] = row
-
         self._save(data)
         return User.from_dict(row)
 
@@ -100,4 +97,41 @@ class JSONUserStore(UserStore):
         row["updated_at"] = datetime.now(timezone.utc).isoformat()
         users[google_sub] = row
         self._save(data)
+        return User.from_dict(row)
+
+# -------- Postgres store (use this) --------
+class PostgresUserStore(UserStore):
+    def get_by_google_id(self, google_sub: str) -> Optional[User]:
+        row = exec_get_one_dict("SELECT * FROM users WHERE google_id=%s", (google_sub,))
+        return User.from_dict(row) if row else None
+
+    def create_or_update_from_google(self, profile: Dict[str, Any]) -> User:
+        sub   = profile["sub"]
+        email = profile.get("email", "")
+        name  = profile.get("name", "") or email or sub
+        pic   = profile.get("picture", "")
+        sql = """
+        INSERT INTO users (google_id, email, display_name, avatar_url)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (google_id)
+        DO UPDATE SET email=EXCLUDED.email,
+                        display_name = COALESCE(users.display_name, EXCLUDED.display_name),
+                        avatar_url=EXCLUDED.avatar_url,
+                        updated_at=NOW()
+        RETURNING google_id, email, display_name, avatar_url, COALESCE(bio,'') AS bio;
+        """
+        row = exec_get_one_dict(sql, (sub, email, name, pic))
+        return User.from_dict(row)
+
+    def update_profile(self, google_sub: str, display_name: str, bio: str) -> User:
+        exec_commit(
+            "UPDATE users SET display_name=%s, bio=%s, updated_at=NOW() WHERE google_id=%s",
+            (display_name, bio, google_sub)
+        )
+        row = exec_get_one_dict(
+            "SELECT google_id, email, display_name, avatar_url, COALESCE(bio,'') AS bio FROM users WHERE google_id=%s",
+            (google_sub,)
+        )
+        if not row:
+            raise KeyError("User not found")
         return User.from_dict(row)

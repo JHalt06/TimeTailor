@@ -1,114 +1,164 @@
-CREATE TABLE IF NOT EXISTS movements(
-    ID SERIAL PRIMARY KEY,
-    user_id REFERENCES users(ID),
-    brand TEXT,
-    model TEXT,
-    movement_type_id INT REFERENCES movement_types(ID)
-    price REAL, --check
-    image_url TEXT,
-    power_reserve TEXT, --ex:., “40 hours”
-    accuracy TEXT, --optional
-    description TEXT,     
+-- tables.sql
+-- HARD RESET: drop & recreate the public schema (wipes ALL tables, views, fkeys, etc.)
+DROP SCHEMA IF EXISTS public CASCADE;
+CREATE SCHEMA public;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+SET search_path TO public;
+
+-- =========================
+-- USERS
+-- =========================
+CREATE TABLE users (
+    id            SERIAL PRIMARY KEY,
+    google_id     TEXT UNIQUE NOT NULL,
+    email         TEXT,
+    display_name  TEXT NOT NULL,
+    avatar_url    TEXT,
+    bio           TEXT,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE TABLE IF NOT EXISTS movement_types(
-    ID SERIAL PRIMARY KEY,
-    type_name TEXT UNIQUE NOT NULL, --ex: "Automatic", "Manual Mechanical", "Quartz"                     
+CREATE INDEX idx_users_google_id ON users(google_id);
+
+-- =========================
+-- LOOKUP: MOVEMENT TYPES
+-- =========================
+CREATE TABLE movement_types (
+    id        SERIAL PRIMARY KEY,
+    type_name TEXT UNIQUE NOT NULL
 );
 
+-- =========================
+-- MOVEMENTS
+-- =========================
+CREATE TABLE movements (
+    id               SERIAL PRIMARY KEY,
+    user_id          INT REFERENCES users(id),
+    brand            TEXT,
+    model            TEXT,
+    movement_type_id INT REFERENCES movement_types(id),
+    price            NUMERIC(10,2),
+    image_url        TEXT,
+    power_reserve    TEXT,   -- e.g., '40 hours'
+    accuracy         TEXT,   -- optional
+    description      TEXT,
+    created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =========================
+-- CASES
+-- =========================
+CREATE TABLE cases (
+    id          SERIAL PRIMARY KEY,
+    user_id     INT REFERENCES users(id),
+    brand       TEXT,
+    model       TEXT,
+    price       NUMERIC(10,2),
+    image_url   TEXT,
+    material    TEXT,               -- e.g., '316L Stainless Steel'
+    dimension1  NUMERIC(10,2),      -- width (mm)
+    dimension2  NUMERIC(10,2),      -- lug-to-lug (mm)
+    dimension3  NUMERIC(10,2),      -- thickness (mm)
+    description TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =========================
+-- DIALS
+-- =========================
+CREATE TABLE dials (
+    id           SERIAL PRIMARY KEY,
+    user_id      INT REFERENCES users(id),
+    brand        TEXT,
+    model        TEXT,
+    price        NUMERIC(10,2),
+    image_url    TEXT,
+    color        TEXT,
+    material     TEXT,
+    diameter_mm  NUMERIC(10,2),
+    description  TEXT,
+    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =========================
+-- STRAPS
+-- =========================
+CREATE TABLE straps (
+    id          SERIAL PRIMARY KEY,
+    user_id     INT REFERENCES users(id),
+    brand       TEXT,
+    model       TEXT,
+    price       NUMERIC(10,2),
+    image_url   TEXT,
+    color       TEXT,
+    material    TEXT,
+    width_mm    NUMERIC(10,2),
+    length_mm   NUMERIC(10,2),
+    description TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =========================
+-- HANDS
+-- =========================
+CREATE TABLE hands (
+    id          SERIAL PRIMARY KEY,
+    user_id     INT REFERENCES users(id),
+    brand       TEXT,
+    model       TEXT,
+    price       NUMERIC(10,2),
+    image_url   TEXT,
+    color       TEXT,
+    material    TEXT,
+    type_       TEXT,
+    description TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =========================
+-- CROWNS
+-- =========================
+CREATE TABLE crowns (
+    id          SERIAL PRIMARY KEY,
+    user_id     INT REFERENCES users(id),
+    brand       TEXT,
+    model       TEXT,
+    price       NUMERIC(10,2),
+    image_url   TEXT,
+    color       TEXT,
+    material    TEXT,
+    description TEXT,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- =========================
+-- BUILDS
+-- =========================
+CREATE TABLE builds (
+    id            SERIAL PRIMARY KEY,
+    user_id       INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    movements_id  INT REFERENCES movements(id) ON DELETE SET NULL,
+    cases_id      INT REFERENCES cases(id)     ON DELETE SET NULL,
+    dials_id      INT REFERENCES dials(id)     ON DELETE SET NULL,
+    straps_id     INT REFERENCES straps(id)    ON DELETE SET NULL,
+    hands_id      INT REFERENCES hands(id)     ON DELETE SET NULL,
+    crowns_id     INT REFERENCES crowns(id)    ON DELETE SET NULL,
+    total_price   NUMERIC(100,2) NOT NULL DEFAULT 0,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    published     BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE INDEX idx_builds_user ON builds(user_id);
+
+-- =========================
+-- SEEDS
+-- =========================
 INSERT INTO movement_types (type_name) VALUES
-('Automatic'),
-('Manual Mechanical'),
-('Quartz'),
-('Mecaquartz'),
-('Micro-rotor');
-
-CREATE TABLE IF NOT EXISTS cases(
-    ID SERIAL PRIMARY KEY,
-    user_id REFERENCES users(ID),
-    brand TEXT,
-    model TEXT,
-    price REAL, --check
-    image_url TEXT,
-    material TEXT, --e.g., "316L Stainless Steel"
-    dimension1 REAL,
-    dimension2 REAL,
-    dimension3 REAL,
-    description TEXT,     
-);
-
-CREATE TABLE IF NOT EXISTS dials(
-    ID SERIAL PRIMARY KEY,
-    user_id REFERENCES users(ID),
-    brand TEXT,
-    model TEXT,
-    price REAL, 
-    image_url TEXT,
-    color TEXT,
-    material TEXT,
-    diameter_mm REAL, --e.g., 40.0
-    description TEXT,
-);
-
-CREATE TABLE IF NOT EXISTS straps(
-    ID SERIAL PRIMARY KEY,
-    user_id REFERENCES users(ID),
-    brand TEXT,
-    model TEXT,
-    price REAL, 
-    image_url TEXT,
-    color TEXT,
-    material TEXT,
-    width_mm REAL, -- ex: 20.0
-    length_mm REAL, --optional size dimension
-    description TEXT,
-);
-
-CREATE TABLE IF NOT EXISTS hands( --may have to change to different kinds of hands ENUM
-    ID SERIAL PRIMARY KEY,
-    user_id REFERENCES users(ID),
-    brand TEXT,
-    model TEXT,
-    price REAL, 
-    image_url TEXT,
-    color TEXT,
-    material TEXT,
-    type_ TEXT, --add more later
-    description TEXT,
-);
-
-CREATE TABLE IF NOT EXISTS crowns(
-    ID SERIAL PRIMARY KEY,
-    user_id REFERENCES users(ID),
-    brand TEXT,
-    model TEXT,
-    price REAL, 
-    image_url TEXT,
-    color TEXT,
-    material TEXT,
-    description TEXT,
-);
-
-CREATE TABLE IF NOT EXISTS builds( --IF NOT EXISTS
-    ID SERIAL PRIMARY KEY,
-    user_id INT REFERENCES users(ID),
-    movements_id INT REFERENCES movements(ID),
-    cases_id INT REFERENCES cases(ID),
-    dials_id INT REFERENCES dials(ID),
-    straps_id INT REFERENCES straps(ID),
-    hands_id INT REFERENCES hands(ID),
-    crowns_id INT REFERENCES crowns(ID),
-    total_price DECIMAL(100,2),
-    time_created TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    published BOOLEAN --either published or priate (T or F) Could add share via link privacy later.
-);
-
-CREATE TABLE IF NOT EXISTS users( --check data type with Michael later on
-    google_id TEXT,
-    email TEXT,
-    display_name TEXT,
-    avatar_url TEXT,
-    bio TEXT,
-    created_at TIMESTAMP
-    updated_at TIMESTAMP
-);
+  ('Automatic'),
+  ('Manual Mechanical'),
+  ('Quartz'),
+  ('Mecaquartz'),
+  ('Micro-rotor')
+ON CONFLICT (type_name) DO NOTHING;

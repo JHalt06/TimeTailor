@@ -4,19 +4,26 @@ import Button from './Button'
 import Tabs from './Tabs'
 import { api } from '../utils/api'
 
-const TYPES = ["movements","cases","dials","straps","hands","crowns"]
+const TYPES = ['movements', 'cases', 'dials', 'straps', 'hands', 'crowns']
 
 export default function PartsPanel({ selection, onPick }) {
-  const [tab, setTab] = useState("dials")
-  const [view, setView] = useState("parts") // parts | buy
+  const [tab, setTab] = useState('dials')
+  const [view, setView] = useState('parts') // parts | buy
   const [items, setItems] = useState([])
 
-  const selectedId = selection?.[`${tab}_id`] ?? null
+  const selectedId = selection?.[tab]?.id ?? selection?.[tab]?.ID ?? null
 
   useEffect(() => {
-    let isMounted = true
-    api(`/api/parts/${tab}`).then(d => { if (isMounted) setItems(d) }).catch(()=>setItems([]))
-    return () => { isMounted = false }
+    let cancelled = false
+    ;(async () => {
+      try {
+        const data = await api(`/api/parts/${tab}`)
+        if (!cancelled) setItems(Array.isArray(data) ? data : [])
+      } catch {
+        if (!cancelled) setItems([])
+      }
+    })()
+    return () => { cancelled = true }
   }, [tab])
 
   const tabItems = useMemo(
@@ -31,39 +38,50 @@ export default function PartsPanel({ selection, onPick }) {
         <Tabs
           value={view}
           onChange={setView}
-          items={[{value:'parts', label:'Parts'},{value:'buy', label:'Buy Links'}]}
+          items={[
+            { value: 'parts', label: 'Parts' },
+            { value: 'buy', label: 'Buy Links' },
+          ]}
         />
       </div>
 
       {view === 'parts' ? (
         <ul className="grid sm:grid-cols-2 gap-3">
           {items.map(it => {
-            const active = selectedId === it.id
+            const pk = it?.id ?? it?.ID
+            const active = Number(selectedId) === Number(pk)
+            const price = Number(it?.price ?? 0)
+
             return (
               <li
-                key={it.id}
-                className={`rounded-2xl border p-3 transition bg-white
-                  ${active
-                    ? "border-blue-400 ring-2 ring-blue-200"
-                    : "border-gray-300 hover:shadow-md"}`}
+                key={pk ?? JSON.stringify(it)}
+                className={`rounded-2xl border p-3 transition bg-white ${
+                  active
+                    ? 'border-blue-400 ring-2 ring-blue-200'
+                    : 'border-gray-300 hover:shadow-md'
+                }`}
               >
                 <div className="flex gap-3">
-                  <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200
-                                  grid place-items-center text-[11px] text-gray-500">
+                  <div className="h-16 w-16 rounded-xl bg-gradient-to-br from-gray-100 to-gray-200 grid place-items-center text-[11px] text-gray-500">
                     Img
                   </div>
                   <div className="flex-1">
-                    <div className="text-sm font-medium">{it.brand} {it.model}</div>
-                    <div className="text-xs text-gray-600">${(it.price ?? 0).toFixed(2)}</div>
+                    <div className="text-sm font-medium">
+                      {(it?.brand ?? 'Unknown')} {(it?.model ?? '')}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      ${price.toFixed(2)}
+                    </div>
 
                     <div className="mt-2">
                       {active ? (
-                        <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full
-                                         bg-blue-50 text-blue-700 border border-blue-200">
+                        <span className="inline-flex items-center text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
                           ✓ Selected
                         </span>
                       ) : (
-                        <Button size="sm" onClick={() => onPick(tab, it)}>Select</Button>
+                        <Button size="sm" onClick={() => onPick(tab, it)}>
+                          Select
+                        </Button>
                       )}
                     </div>
                   </div>
@@ -83,4 +101,3 @@ export default function PartsPanel({ selection, onPick }) {
     </Card>
   )
 }
-    
